@@ -1,0 +1,110 @@
+database: ecommerce
+description: 전자상거래 주문·고객·상품 스키마
+aliases: [쇼핑, 전자상거래, 이커머스, ecommerce]
+tables:
+  - name: customers
+    description: 고객 마스터
+    aliases: [고객, 회원, customer, customers, 구매자]
+    columns:
+      - name: customer_id
+        type: INTEGER
+        description: 고객 고유 ID
+        primary_key: true
+        aliases: [고객번호, 회원번호]
+      - name: customer_name
+        type: VARCHAR(100)
+        description: 고객 이름
+        aliases: [고객명, 회원이름]
+      - name: email
+        type: VARCHAR(255)
+        description: 이메일 주소
+        aliases: [이메일, 메일]
+      - name: phone
+        type: VARCHAR(20)
+        description: 연락처
+        aliases: [전화, 휴대폰, 연락처]
+      - name: signup_date
+        type: DATE
+        description: 가입일
+        aliases: [가입, 회원가입일, 가입일자]
+      - name: region
+        type: VARCHAR(50)
+        description: 거주 지역
+        aliases: [지역, 거주지]
+
+  - name: products
+    description: 상품 마스터
+    aliases: [상품, 제품, product, products, 품목]
+    columns:
+      - name: product_id
+        type: INTEGER
+        description: 상품 고유 ID
+        primary_key: true
+        aliases: [상품번호, 제품번호]
+      - name: product_name
+        type: VARCHAR(200)
+        description: 상품명
+        aliases: [제품명, 품명]
+      - name: category
+        type: VARCHAR(50)
+        description: 상품 카테고리
+        aliases: [카테고리, 분류]
+      - name: unit_price
+        type: DECIMAL(10, 2)
+        description: 단가
+        aliases: [가격, 단가, 판매가]
+      - name: stock_qty
+        type: INTEGER
+        description: 재고 수량
+        aliases: [재고, 재고량, stock]
+
+  - name: orders
+    description: 주문 헤더
+    aliases: [주문, order, orders, 구매]
+    columns:
+      - name: order_id
+        type: INTEGER
+        description: 주문 고유 ID
+        primary_key: true
+        aliases: [주문번호, 주문id]
+      - name: customer_id
+        type: INTEGER
+        description: 주문 고객 ID (customers.customer_id)
+        foreign_key: customers.customer_id
+      - name: order_date
+        type: TIMESTAMP
+        description: 주문 일시
+        aliases: [주문일, 주문일시, 구매일]
+      - name: order_status
+        type: VARCHAR(20)
+        description: 주문 상태 (PENDING, SHIPPED, DELIVERED, CANCELLED)
+        aliases: [주문상태, 배송상태, 배송완료, delivered]
+      - name: total_amount
+        type: DECIMAL(12, 2)
+        description: 주문 총액
+        aliases: [주문금액, 총액, 매출, 결제금액]
+
+  - name: order_items
+    description: 주문 상세 라인
+    aliases: [주문상세, 주문항목, order_items, 라인아이템]
+    columns:
+      - name: order_item_id
+        type: INTEGER
+        description: 주문 상세 ID
+        primary_key: true
+      - name: order_id
+        type: INTEGER
+        description: 주문 ID (orders.order_id)
+        foreign_key: orders.order_id
+      - name: product_id
+        type: INTEGER
+        description: 상품 ID (products.product_id)
+        foreign_key: products.product_id
+      - name: quantity
+        type: INTEGER
+        description: 주문 수량
+        aliases: [수량, 구매수량]
+      - name: line_amount
+        type: DECIMAL(12, 2)
+        description: 라인 금액
+        aliases: [라인금액, 항목금액, 금액]

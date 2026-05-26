@@ -1,0 +1,110 @@
+database: hr
+description: 인사·조직·급여 스키마
+aliases: [인사, 조직, 급여, hr]
+tables:
+  - name: departments
+    description: 부서 마스터
+    aliases: [부서, department, departments, dept]
+    columns:
+      - name: dept_id
+        type: INTEGER
+        description: 부서 ID
+        primary_key: true
+        aliases: [부서번호, 부서id]
+      - name: dept_name
+        type: VARCHAR(100)
+        description: 부서명
+        aliases: [부서이름, 부서 이름]
+      - name: location
+        type: VARCHAR(100)
+        description: 부서 위치
+        aliases: [위치, 근무지]
+
+  - name: employees
+    description: 직원 마스터
+    aliases: [직원, 사원, 인원, employee, employees, emp]
+    columns:
+      - name: emp_id
+        type: INTEGER
+        description: 직원 ID
+        primary_key: true
+        aliases: [사번, 직원번호]
+      - name: emp_name
+        type: VARCHAR(100)
+        description: 직원 이름
+        aliases: [이름, 성명]
+      - name: dept_id
+        type: INTEGER
+        description: 소속 부서 ID (departments.dept_id)
+        foreign_key: departments.dept_id
+        aliases: [소속부서]
+      - name: hire_date
+        type: DATE
+        description: 입사일
+        aliases: [입사, 채용일]
+      - name: job_title
+        type: VARCHAR(100)
+        description: 직무/직책
+        aliases: [직무, 직책, 직급]
+      - name: salary
+        type: DECIMAL(12, 2)
+        description: 기본 연봉
+        aliases: [연봉, 급여, 임금, 보수]
+
+  - name: attendance
+    description: 근태 기록
+    aliases: [근태, 출퇴근, attendance]
+    columns:
+      - name: attendance_id
+        type: INTEGER
+        description: 근태 ID
+        primary_key: true
+      - name: emp_id
+        type: INTEGER
+        description: 직원 ID (employees.emp_id)
+        foreign_key: employees.emp_id
+      - name: work_date
+        type: DATE
+        description: 근무일
+        aliases: [근무일자, 출근일]
+      - name: check_in
+        type: TIME
+        description: 출근 시각
+        aliases: [출근, 출근시간]
+      - name: check_out
+        type: TIME
+        description: 퇴근 시각
+        aliases: [퇴근, 퇴근시간]
+      - name: status
+        type: VARCHAR(20)
+        description: 근태 상태 (PRESENT, ABSENT, LEAVE)
+        aliases: [근태상태, 결근, 휴가]
+
+  - name: payroll
+    description: 급여 지급 내역
+    aliases: [급여명세, 급여지급, payroll, 페이롤]
+    columns:
+      - name: payroll_id
+        type: INTEGER
+        description: 급여 ID
+        primary_key: true
+      - name: emp_id
+        type: INTEGER
+        description: 직원 ID (employees.emp_id)
+        foreign_key: employees.emp_id
+      - name: pay_month
+        type: VARCHAR(7)
+        description: 지급 월 (YYYY-MM)
+        aliases: [급여월, 지급월]
+      - name: base_pay
+        type: DECIMAL(12, 2)
+        description: 기본급
+        aliases: [기본급, 월급]
+      - name: bonus
+        type: DECIMAL(12, 2)
+        description: 상여금
+        aliases: [상여, 보너스, bonus]
+      - name: net_pay
+        type: DECIMAL(12, 2)
+        description: 실수령액
+        aliases: [실수령, 수령액, 통장입금]
