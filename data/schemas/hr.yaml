@@ -3,7 +3,7 @@ description: 부록 데이터모델 기반 인사·급여 스키마
 aliases: [부록, 인사, 급여, hr]
 tables:
   - name: departments
-    description: 부서 마스터
+    description: 부서
     aliases: [부서, department, departments]
     columns:
       - name: dept_code
@@ -21,7 +21,7 @@ tables:
         aliases: [지역, 근무지역]
 
   - name: employees
-    description: 사원 마스터
+    description: 사원
     aliases: [사원, 직원, employee, employees]
     columns:
       - name: emp_no
@@ -48,7 +48,7 @@ tables:
         aliases: [입사일자, 입사일]
       - name: retire_date
         type: DATE
-        description: 퇴사일
+        description: 퇴사일자
         aliases: [퇴사일, 퇴직일]
       - name: pay_type
         type: VARCHAR2(4)
@@ -201,7 +201,7 @@ tables:
         type: VARCHAR2(1)
         description: 성과금지급여부
         aliases: [성과금지급여부]
-      - name: incentive_rate
+      - name: incentive
         type: NUMBER(10)
-        description: 성과률
-        aliases: [성과률, 성과율]
+        description: 성과급
+        aliases: [성과급, 보너스, 성과금]
