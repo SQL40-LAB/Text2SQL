@@ -1,110 +1,207 @@
 database: hr
-description: 인사·조직·급여 스키마
-aliases: [인사, 조직, 급여, hr]
+description: 부록 데이터모델 기반 인사·급여 스키마
+aliases: [부록, 인사, 급여, hr]
 tables:
   - name: departments
     description: 부서 마스터
-    aliases: [부서, department, departments, dept]
+    aliases: [부서, department, departments]
     columns:
-      - name: dept_id
-        type: INTEGER
-        description: 부서 ID
+      - name: dept_code
+        type: VARCHAR2(2)
+        description: 부서코드
         primary_key: true
-        aliases: [부서번호, 부서id]
+        aliases: [부서코드, 부서 코드]
       - name: dept_name
-        type: VARCHAR(100)
+        type: VARCHAR2(10)
         description: 부서명
-        aliases: [부서이름, 부서 이름]
-      - name: location
-        type: VARCHAR(100)
-        description: 부서 위치
-        aliases: [위치, 근무지]
+        aliases: [부서명, 부서 이름]
+      - name: region
+        type: VARCHAR2(10)
+        description: 지역
+        aliases: [지역, 근무지역]
 
   - name: employees
-    description: 직원 마스터
-    aliases: [직원, 사원, 인원, employee, employees, emp]
+    description: 사원 마스터
+    aliases: [사원, 직원, employee, employees]
     columns:
-      - name: emp_id
-        type: INTEGER
-        description: 직원 ID
+      - name: emp_no
+        type: NUMBER(3)
+        description: 사원번호
         primary_key: true
-        aliases: [사번, 직원번호]
+        aliases: [사번, 사원번호]
       - name: emp_name
-        type: VARCHAR(100)
-        description: 직원 이름
-        aliases: [이름, 성명]
-      - name: dept_id
-        type: INTEGER
-        description: 소속 부서 ID (departments.dept_id)
-        foreign_key: departments.dept_id
-        aliases: [소속부서]
+        type: VARCHAR2(10)
+        description: 사원명
+        aliases: [사원명, 이름]
+      - name: dept_code
+        type: VARCHAR2(2)
+        description: 부서코드 (departments.dept_code)
+        foreign_key: departments.dept_code
+        aliases: [부서코드, 소속부서]
+      - name: position
+        type: VARCHAR2(6)
+        description: 직급
+        aliases: [직급, 직책]
       - name: hire_date
         type: DATE
-        description: 입사일
-        aliases: [입사, 채용일]
-      - name: job_title
-        type: VARCHAR(100)
-        description: 직무/직책
-        aliases: [직무, 직책, 직급]
-      - name: salary
-        type: DECIMAL(12, 2)
-        description: 기본 연봉
-        aliases: [연봉, 급여, 임금, 보수]
-
-  - name: attendance
-    description: 근태 기록
-    aliases: [근태, 출퇴근, attendance]
-    columns:
-      - name: attendance_id
-        type: INTEGER
-        description: 근태 ID
-        primary_key: true
-      - name: emp_id
-        type: INTEGER
-        description: 직원 ID (employees.emp_id)
-        foreign_key: employees.emp_id
-      - name: work_date
+        description: 입사일자
+        aliases: [입사일자, 입사일]
+      - name: retire_date
         type: DATE
-        description: 근무일
-        aliases: [근무일자, 출근일]
-      - name: check_in
-        type: TIME
-        description: 출근 시각
-        aliases: [출근, 출근시간]
-      - name: check_out
-        type: TIME
-        description: 퇴근 시각
-        aliases: [퇴근, 퇴근시간]
-      - name: status
-        type: VARCHAR(20)
-        description: 근태 상태 (PRESENT, ABSENT, LEAVE)
-        aliases: [근태상태, 결근, 휴가]
+        description: 퇴사일
+        aliases: [퇴사일, 퇴직일]
+      - name: pay_type
+        type: VARCHAR2(4)
+        description: 급여구분
+        aliases: [급여구분, 급여 유형]
+      - name: monthly_pay
+        type: NUMBER(10)
+        description: 월급여
+        aliases: [월급여, 월급]
+      - name: registered_at
+        type: DATE
+        description: 등록일시
+        aliases: [등록일시, 등록일]
 
-  - name: payroll
-    description: 급여 지급 내역
-    aliases: [급여명세, 급여지급, payroll, 페이롤]
+  - name: appointment_history
+    description: 발령이력
+    aliases: [발령이력, 인사이력]
     columns:
-      - name: payroll_id
-        type: INTEGER
-        description: 급여 ID
+      - name: emp_no
+        type: NUMBER(3)
+        description: 사원번호 (employees.emp_no)
         primary_key: true
-      - name: emp_id
-        type: INTEGER
-        description: 직원 ID (employees.emp_id)
-        foreign_key: employees.emp_id
-      - name: pay_month
-        type: VARCHAR(7)
-        description: 지급 월 (YYYY-MM)
+        foreign_key: employees.emp_no
+      - name: history_seq
+        type: NUMBER(2)
+        description: 이력순번
+        primary_key: true
+        aliases: [이력순번, 순번]
+      - name: appointment_date
+        type: DATE
+        description: 발령일자
+        aliases: [발령일자, 발령일]
+      - name: position
+        type: VARCHAR2(6)
+        description: 직급
+        aliases: [직급, 직책]
+      - name: dept_code
+        type: VARCHAR2(2)
+        description: 부서코드 (departments.dept_code)
+        foreign_key: departments.dept_code
+        aliases: [부서코드, 발령부서]
+
+  - name: salary_payments
+    description: 급여지급
+    aliases: [급여지급, 급여, 월급여지급]
+    columns:
+      - name: salary_month
+        type: VARCHAR2(6)
+        description: 급여월
+        primary_key: true
         aliases: [급여월, 지급월]
+      - name: emp_no
+        type: NUMBER(3)
+        description: 사원번호 (employees.emp_no)
+        primary_key: true
+        foreign_key: employees.emp_no
+      - name: monthly_pay
+        type: NUMBER(10)
+        description: 월급여
+        aliases: [월급여, 월급]
       - name: base_pay
-        type: DECIMAL(12, 2)
+        type: NUMBER(10)
         description: 기본급
-        aliases: [기본급, 월급]
-      - name: bonus
-        type: DECIMAL(12, 2)
-        description: 상여금
-        aliases: [상여, 보너스, bonus]
-      - name: net_pay
-        type: DECIMAL(12, 2)
-        description: 실수령액
-        aliases: [실수령, 수령액, 통장입금]
+        aliases: [기본급]
+      - name: allowance
+        type: NUMBER(10)
+        description: 수당
+        aliases: [수당, 추가수당]
+      - name: incentive
+        type: NUMBER(10)
+        description: 성과급
+        aliases: [성과급, 보너스]
+
+  - name: annual_salary_pay
+    description: 연봉제급여
+    aliases: [연봉제급여, 연봉급여]
+    columns:
+      - name: emp_no
+        type: NUMBER(3)
+        description: 사원번호 (employees.emp_no)
+        primary_key: true
+        foreign_key: employees.emp_no
+      - name: annual_salary_amount
+        type: NUMBER(10)
+        description: 연봉액
+        aliases: [연봉액, 연봉]
+      - name: monthly_base_pay
+        type: NUMBER(10)
+        description: 월기본급
+        aliases: [월기본급, 기본급]
+
+  - name: step_salary_pay
+    description: 호봉제급여
+    aliases: [호봉제급여, 호봉급여]
+    columns:
+      - name: emp_no
+        type: NUMBER(3)
+        description: 사원번호 (employees.emp_no)
+        primary_key: true
+        foreign_key: employees.emp_no
+      - name: step_no
+        type: NUMBER(10)
+        description: 호봉
+        aliases: [호봉]
+      - name: monthly_base_pay
+        type: NUMBER(10)
+        description: 월기본급
+        aliases: [월기본급, 기본급]
+
+  - name: fixed_amount_pay
+    description: 금액제급여
+    aliases: [금액제급여, 금액급여]
+    columns:
+      - name: emp_no
+        type: NUMBER(3)
+        description: 사원번호 (employees.emp_no)
+        primary_key: true
+        foreign_key: employees.emp_no
+      - name: monthly_base_pay
+        type: NUMBER(10)
+        description: 월기본급
+        aliases: [월기본급, 기본급]
+
+  - name: other_pay
+    description: 기타급여
+    aliases: [기타급여, 기타수당]
+    columns:
+      - name: emp_no
+        type: NUMBER(3)
+        description: 사원번호 (employees.emp_no)
+        primary_key: true
+        foreign_key: employees.emp_no
+      - name: basic_allowance_yn
+        type: VARCHAR2(1)
+        description: 기본수당지급여부
+        aliases: [기본수당지급여부]
+      - name: basic_allowance_amount
+        type: NUMBER(10)
+        description: 기본수당액
+        aliases: [기본수당액]
+      - name: special_allowance_yn
+        type: VARCHAR2(1)
+        description: 특별수당지급여부
+        aliases: [특별수당지급여부]
+      - name: special_allowance_amount
+        type: NUMBER(10)
+        description: 특별수당액
+        aliases: [특별수당액]
+      - name: incentive_yn
+        type: VARCHAR2(1)
+        description: 성과금지급여부
+        aliases: [성과금지급여부]
+      - name: incentive_rate
+        type: NUMBER(10)
+        description: 성과률
+        aliases: [성과률, 성과율]
