@@ -22,6 +22,7 @@ class Text2SQLResult:
     filtered_schema_text: str = ""
     prompt_preview: str = ""
     error: Optional[str] = None
+    no_matching_tables: bool = False
 
 
 def run_text2sql(user_query: str, *, use_mock: bool = False) -> Text2SQLResult:
@@ -46,6 +47,14 @@ def run_text2sql(user_query: str, *, use_mock: bool = False) -> Text2SQLResult:
         filtered_tables = filter_tables_by_query(all_schemas, user_query)
         result.filtered_schemas = group_tables_by_database(filtered_tables)
         result.filtered_schema_text = filtered_tables_to_prompt(filtered_tables)
+
+        if not filtered_tables:
+            result.no_matching_tables = True
+            result.error = (
+                "입력하신 질의와 관련된 테이블을 찾을 수 없습니다. "
+                "질의에 테이블·컬럼 관련 키워드(예: 부서, 사원, 급여)를 포함해 다시 시도해 주세요."
+            )
+            return result
 
         if use_mock:
             sql = _mock_sql(user_query, filtered_tables)
