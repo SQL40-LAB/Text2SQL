@@ -1,0 +1,7 @@
+[client]
+# Deploy·Development·Run on save 등 개발자 옵션 숨김
+toolbarMode = "viewer"
+
+[server]
+# 저장 시 자동 재실행 비활성화
+runOnSave = false
