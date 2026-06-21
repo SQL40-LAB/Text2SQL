@@ -8,6 +8,8 @@ ChatGPT API 호출 → SQL 검증 후 결과를 표시합니다.
 import streamlit as st
 
 from src.pipeline import run_text2sql
+from src.progress_bar import display_pipeline_progress
+from src.streamlit_ui import apply_ui_customization
 
 st.set_page_config(
     page_title="Text2SQL",
@@ -16,15 +18,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-st.markdown(
-    """
-    <style>
-    [data-testid="stSidebar"] { display: none; }
-    [data-testid="collapsedControl"] { display: none; }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
+apply_ui_customization()
 
 st.title("Text2SQL")
 st.caption(
@@ -38,10 +32,14 @@ user_query = st.text_area(
     placeholder="예: 부서별 사원 수와 평균 월급여를 보여줘",
 )
 generate = st.button("SQL 생성", type="primary", use_container_width=False)
+progress_placeholder = st.empty()
 
 if generate:
-    with st.spinner("스키마 필터링 및 SQL 생성 중..."):
-        result = run_text2sql(user_query)
+    def _update_progress(completed_count: int) -> None:
+        with progress_placeholder.container():
+            display_pipeline_progress(completed_count)
+
+    result = run_text2sql(user_query, on_progress=_update_progress)
 
     if result.no_matching_tables:
         st.warning(result.error)
