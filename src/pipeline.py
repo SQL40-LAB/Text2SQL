@@ -2,14 +2,24 @@
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from src.keyword_filter import filter_tables_by_query, group_tables_by_database
-from src.openai_client import OpenAIAPIError, format_openai_exception, generate_sql
-from src.schema_loader import filtered_tables_to_prompt, load_all_schemas
-from src.sql_validator import format_sql, validate_sql
+from src.openai_client import OpenAIAPIError, format_openai_exception, generate_sql_from_prompt
+from src.prompt_builder import build_user_prompt
+from src.schema_loader import (
+    build_column_description_map,
+    filtered_tables_to_prompt,
+    load_all_schemas,
+)
+from src.sql_validator import annotate_sql_with_descriptions, format_sql, validate_sql
 
+ProgressCallback = Callable[[int], None]
+
+# progress bar에서 각 단계가 최소 표시되는 시간(초)
+MIN_STEP_DISPLAY_SECONDS = 1.0
 
 @dataclass
 class Text2SQLResult:
@@ -25,7 +35,39 @@ class Text2SQLResult:
     no_matching_tables: bool = False
 
 
-def run_text2sql(user_query: str, *, use_mock: bool = False) -> Text2SQLResult:
+def _make_throttled_progress(
+    callback: Optional[ProgressCallback],
+    min_seconds: float = MIN_STEP_DISPLAY_SECONDS,
+) -> Optional[ProgressCallback]:
+    """각 단계가 최소 min_seconds 동안 화면에 표시되도록 콜백을 래핑합니다."""
+    if callback is None:
+        return None
+
+    last_shown_at: list[Optional[float]] = [None]
+
+    def throttled(completed_count: int) -> None:
+        now = time.time()
+        if last_shown_at[0] is not None:
+            elapsed = now - last_shown_at[0]
+            if elapsed < min_seconds:
+                time.sleep(min_seconds - elapsed)
+        callback(completed_count)
+        last_shown_at[0] = time.time()
+
+    return throttled
+
+
+def _notify_progress(callback: Optional[ProgressCallback], completed_count: int) -> None:
+    if callback:
+        callback(completed_count)
+
+
+def run_text2sql(
+    user_query: str,
+    *,
+    use_mock: bool = False,
+    on_progress: Optional[ProgressCallback] = None,
+) -> Text2SQLResult:
     """
     흐름도 1~8단계를 순서대로 실행합니다.
 
@@ -43,10 +85,15 @@ def run_text2sql(user_query: str, *, use_mock: bool = False) -> Text2SQLResult:
         return result
 
     try:
+        progress = _make_throttled_progress(on_progress)
+        _notify_progress(progress, 0)
         all_schemas = load_all_schemas()
+        _notify_progress(progress, 1)
+
         filtered_tables = filter_tables_by_query(all_schemas, user_query)
         result.filtered_schemas = group_tables_by_database(filtered_tables)
         result.filtered_schema_text = filtered_tables_to_prompt(filtered_tables)
+        _notify_progress(progress, 2)
 
         if not filtered_tables:
             result.no_matching_tables = True
@@ -56,23 +103,32 @@ def run_text2sql(user_query: str, *, use_mock: bool = False) -> Text2SQLResult:
             )
             return result
 
+        prompt = build_user_prompt(user_query, filtered_tables)
+        result.prompt_preview = prompt
+        _notify_progress(progress, 3)
+
         if use_mock:
             sql = _mock_sql(user_query, filtered_tables)
-            prompt = "(모의 모드 — API 미호출)"
         else:
-            sql, prompt = generate_sql(user_query, filtered_tables)
+            sql = generate_sql_from_prompt(prompt)
+        _notify_progress(progress, 4)
 
-        result.prompt_preview = prompt
         ok, msg = validate_sql(sql)
         result.validation_message = msg
+        column_descriptions = build_column_description_map(all_schemas)
 
         if ok:
-            result.sql = format_sql(sql)
+            formatted_sql = format_sql(sql)
+            result.sql = annotate_sql_with_descriptions(
+                formatted_sql, column_descriptions
+            )
             result.success = True
         else:
-            result.sql = sql
+            result.sql = annotate_sql_with_descriptions(sql, column_descriptions)
             result.success = False
             result.error = msg
+
+        _notify_progress(progress, 5)
 
     except OpenAIAPIError as e:
         result.error = str(e)
@@ -89,9 +145,11 @@ def _mock_sql(user_query: str, tables: list) -> str:
     if not tables:
         return f"-- 모의 생성 (질의: {user_query[:50]})\nSELECT 1;"
     t = tables[0]
-    cols = [c["name"] for c in t.get("columns", [])[:5]]
+    cols = [c["name"].upper() for c in t.get("columns", [])[:5]]
     col_sql = ", ".join(cols) if cols else "*"
+    db = t["database"].upper()
+    tname = t["name"].upper()
     return (
         f"-- 모의 생성 (질의: {user_query[:50]})\n"
-        f"SELECT {col_sql}\nFROM {t['database']}.{t['name']}\nLIMIT 10;"
+        f"SELECT {col_sql}\nFROM {db}.{tname}\nFETCH FIRST 10 ROWS ONLY;"
     )

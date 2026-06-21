@@ -77,12 +77,18 @@ def generate_sql(user_query: str, filtered_tables: list) -> tuple[str, str]:
     Returns:
         (생성된 SQL, 사용된 사용자 프롬프트)
     """
+    user_prompt = build_user_prompt(user_query, filtered_tables)
+    sql = generate_sql_from_prompt(user_prompt)
+    return sql, user_prompt
+
+
+def generate_sql_from_prompt(user_prompt: str) -> str:
+    """생성된 사용자 프롬프트로 ChatGPT API를 호출해 SQL을 반환합니다."""
     if not OPENAI_API_KEY:
         raise OpenAIConfigurationError(
             "OPENAI_API_KEY가 설정되지 않았습니다. .env 파일을 확인하세요."
         )
 
-    user_prompt = build_user_prompt(user_query, filtered_tables)
     client = OpenAI(api_key=OPENAI_API_KEY)
 
     try:
@@ -98,5 +104,4 @@ def generate_sql(user_query: str, filtered_tables: list) -> tuple[str, str]:
         raise OpenAIAPIError(format_openai_exception(e)) from e
 
     raw = response.choices[0].message.content or ""
-    sql = extract_sql_from_response(raw)
-    return sql, user_prompt
+    return extract_sql_from_response(raw)
