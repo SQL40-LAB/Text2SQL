@@ -7,6 +7,55 @@ from typing import Any, Dict, List, Set, Tuple
 
 MIN_TOKEN_LEN = 2
 
+# 한국어 자연어 질의에서 스키마 매칭에 쓰이지 않는 불용어
+KOREAN_STOPWORDS = frozenset({
+    # 요청·동작
+    "조회", "검색", "찾기", "찾아", "보기", "보여", "보여줘", "알려", "알려줘",
+    "출력", "작성", "생성", "만들", "만들어", "해줘", "해주", "주세요", "싶어",
+    "하고", "해서", "하려", "해", "줘", "주", "좀", "다시", "한번",
+    # 조사·접속어
+    "에서", "으로", "에게", "까지", "부터", "보다", "처럼", "따라", "대한",
+    "관하여", "관련", "대해", "위한", "통한", "같은", "이내", "이상", "이하",
+    "사이", "중에", "중", "내", "외", "및", "또는", "그리고",
+    # 집계·정렬·수식
+    "평균", "합계", "합", "총", "전체", "모든", "각", "최대", "최소", "개수",
+    "건수", "명수", "내림", "오름", "순서", "정렬", "기준", "비교", "집계",
+    "어떤", "무엇", "얼마", "몇", "가장", "제일", "많이", "적게", "높은", "낮은",
+    # 단위·시간 표현
+    "개", "명", "건", "원", "년", "월", "일", "시", "분", "초",
+    "지난", "이번", "다음", "현재", "당월", "전월", "금월", "금년", "작년", "내년",
+    # 일반 명사(스키마와 무관)
+    "목록", "리스트", "데이터", "정보", "내용", "결과", "경우", "것", "수", "등",
+    "있는", "없는", "하는", "되는", "되어", "이다", "입니다",
+})
+
+# 한글 토큰 끝에서 제거할 조사 (긴 접미사 우선)
+KOREAN_PARTICLE_SUFFIXES = (
+    "으로",
+    "에서",
+    "에게",
+    "한테",
+    "부터",
+    "까지",
+    "처럼",
+    "보다",
+    "과",
+    "와",
+    "은",
+    "는",
+    "을",
+    "를",
+    "이",
+    "가",
+    "의",
+    "에",
+    "로",
+    "도",
+    "만",
+    "께",
+    "별",
+)
+
 
 def _normalize_aliases(aliases: Any) -> List[str]:
     if not aliases:
@@ -26,13 +75,40 @@ def _entity_terms(
     return [t.lower() for t in terms if t]
 
 
+def _strip_trailing_particles(token: str) -> str:
+    """한글 토큰 끝에 붙은 조사를 반복 제거합니다. (예: 부서를 → 부서)"""
+    if not re.fullmatch(r"[가-힣]+", token):
+        return token
+
+    result = token
+    min_stem_len = MIN_TOKEN_LEN
+
+    while True:
+        stripped = False
+        for suffix in KOREAN_PARTICLE_SUFFIXES:
+            if result.endswith(suffix) and len(result) - len(suffix) >= min_stem_len:
+                result = result[: -len(suffix)]
+                stripped = True
+                break
+        if not stripped:
+            break
+
+    return result
+
+
 def _tokenize_query(query: str) -> Set[str]:
     normalized = query.lower().strip()
     tokens: Set[str] = set()
     for part in re.findall(r"[a-zA-Z_][a-zA-Z0-9_]*|[가-힣]+|\d+", normalized):
-        if len(part) >= MIN_TOKEN_LEN:
-            tokens.add(part)
-    return tokens
+        token = _strip_trailing_particles(part)
+        if len(token) >= MIN_TOKEN_LEN:
+            tokens.add(token)
+    return _remove_stopwords(tokens)
+
+
+def _remove_stopwords(tokens: Set[str]) -> Set[str]:
+    """한국어 불용어를 제거해 스키마 매칭 노이즈를 줄입니다."""
+    return {token for token in tokens if token not in KOREAN_STOPWORDS}
 
 
 def _exact_match(tokens: Set[str], term: str) -> bool:
