@@ -6,7 +6,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional
 
-from src.keyword_filter import filter_tables_by_query, group_tables_by_database
+from src.keyword_filter import filter_tables_and_tokens, group_tables_by_database
 from src.openai_client import OpenAIAPIError, format_openai_exception, generate_sql_from_prompt
 from src.prompt_builder import build_user_prompt
 from src.schema_loader import (
@@ -33,6 +33,7 @@ class Text2SQLResult:
     prompt_preview: str = ""
     error: Optional[str] = None
     no_matching_tables: bool = False
+    filter_tokens: List[str] = field(default_factory=list)
 
 
 def _make_throttled_progress(
@@ -90,7 +91,9 @@ def run_text2sql(
         all_schemas = load_all_schemas()
         _notify_progress(progress, 1)
 
-        filtered_tables = filter_tables_by_query(all_schemas, user_query)
+        filtered_tables, result.filter_tokens = filter_tables_and_tokens(
+            all_schemas, user_query
+        )
         result.filtered_schemas = group_tables_by_database(filtered_tables)
         result.filtered_schema_text = filtered_tables_to_prompt(filtered_tables)
         _notify_progress(progress, 2)

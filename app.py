@@ -7,6 +7,7 @@ ChatGPT API 호출 → SQL 검증 후 결과를 표시합니다.
 
 import streamlit as st
 
+from src.keyword_filter import format_query_with_highlighted_tokens
 from src.pipeline import run_text2sql
 from src.progress_bar import display_pipeline_progress
 from src.streamlit_ui import apply_ui_customization
@@ -43,6 +44,22 @@ if generate:
 
     if result.no_matching_tables:
         st.warning(result.error)
+        st.markdown("#### 추출된 매칭 키워드")
+        with st.container(border=True):
+            if result.filter_tokens:
+                highlighted = format_query_with_highlighted_tokens(
+                    user_query, result.filter_tokens
+                )
+                st.markdown(highlighted, unsafe_allow_html=True)
+                st.caption(
+                    "노란색으로 표시된 단어가 스키마 매칭에 사용되었습니다: "
+                    + ", ".join(result.filter_tokens)
+                )
+            else:
+                st.info(
+                    "질의에서 스키마 매칭용 키워드를 추출하지 못했습니다. "
+                    "(불용어·조사만 포함된 경우)"
+                )
         st.divider()
         st.markdown("#### 필터링된 스키마")
         with st.container(border=True):

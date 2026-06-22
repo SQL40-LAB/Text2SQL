@@ -56,6 +56,15 @@ KOREAN_PARTICLE_SUFFIXES = (
     "별",
 )
 
+# 한글 토큰 끝에서 제거할 요청·동사 어미 (조회해줘 → 조회)
+KOREAN_REQUEST_SUFFIXES = (
+    "해주세요",
+    "해줘",
+    "해주",
+    "해",
+    "줘",
+)
+
 
 def _normalize_aliases(aliases: Any) -> List[str]:
     if not aliases:
@@ -96,11 +105,41 @@ def _strip_trailing_particles(token: str) -> str:
     return result
 
 
+def _strip_request_suffixes(token: str) -> str:
+    """한글 토큰 끝의 요청·동사 어미를 제거합니다. (예: 조회해줘 → 조회)"""
+    if not re.fullmatch(r"[가-힣]+", token):
+        return token
+
+    result = token
+    min_stem_len = MIN_TOKEN_LEN
+
+    while True:
+        stripped = False
+        for suffix in KOREAN_REQUEST_SUFFIXES:
+            if result.endswith(suffix) and len(result) - len(suffix) >= min_stem_len:
+                result = result[: -len(suffix)]
+                stripped = True
+                break
+        if not stripped:
+            break
+
+    return result
+
+
+def _normalize_token(part: str) -> str:
+    """토큰 정규화: 소문자 변환, 조사·요청 어미 제거."""
+    token = part.lower()
+    if re.fullmatch(r"[가-힣]+", token):
+        token = _strip_trailing_particles(token)
+        token = _strip_request_suffixes(token)
+    return token
+
+
 def _tokenize_query(query: str) -> Set[str]:
     normalized = query.lower().strip()
     tokens: Set[str] = set()
     for part in re.findall(r"[a-zA-Z_][a-zA-Z0-9_]*|[가-힣]+|\d+", normalized):
-        token = _strip_trailing_particles(part)
+        token = _normalize_token(part)
         if len(token) >= MIN_TOKEN_LEN:
             tokens.add(token)
     return _remove_stopwords(tokens)
@@ -206,27 +245,60 @@ def _collect_columns_for_table(
     return columns, score
 
 
-def filter_tables_by_query(
+def extract_query_tokens(query: str) -> List[str]:
+    """질의에서 스키마 매칭에 사용된 토큰 목록을 반환합니다."""
+    return sorted(_tokenize_query(query))
+
+
+def format_query_with_highlighted_tokens(query: str, tokens: List[str]) -> str:
+    """질의문에서 매칭에 사용된 토큰 어간만 하이라이트한 HTML을 반환합니다."""
+    if not query or not tokens:
+        return query
+
+    token_set = {token.lower() for token in tokens}
+    mark_open = (
+        '<mark style="background-color:#fff3bf;'
+        'padding:0 4px;border-radius:4px;font-weight:600;">'
+    )
+    mark_close = "</mark>"
+    parts: List[str] = []
+    last = 0
+
+    for match in re.finditer(r"[a-zA-Z_][a-zA-Z0-9_]*|[가-힣]+|\d+", query):
+        parts.append(query[last : match.start()])
+        segment = match.group()
+        normalized = _normalize_token(segment)
+
+        if normalized in token_set:
+            segment_lower = segment.lower()
+            if segment_lower.startswith(normalized):
+                stem = segment[: len(normalized)]
+                remainder = segment[len(normalized) :]
+                parts.append(f"{mark_open}{stem}{mark_close}{remainder}")
+            else:
+                parts.append(f"{mark_open}{segment}{mark_close}")
+        else:
+            parts.append(segment)
+        last = match.end()
+
+    parts.append(query[last:])
+    return "".join(parts)
+
+
+def filter_tables_and_tokens(
     schemas: List[Dict[str, Any]], query: str
-) -> List[Dict[str, Any]]:
+) -> Tuple[List[Dict[str, Any]], List[str]]:
     """
-    스키마(DB) 단위가 아닌 **테이블·컬럼 단위**로 필터링합니다.
-
-    테이블 포함 기준:
-    - 테이블 name·description·aliases가 질의와 정확히 일치하거나
-      질의 토큰이 해당 명칭으로 시작하는 경우 (예: 부서별 → 부서)
-    - 컬럼 name·aliases가 질의와 정확히 일치하는 경우
-
-    포함된 테이블은 **모든 컬럼**을 프롬프트에 전달합니다.
+    스키마 필터링 결과와 질의에서 추출한 토큰 목록을 함께 반환합니다.
 
     Returns:
-        [{"database": "hr", "name": "employees", "columns": [slim, ...]}, ...]
+        (filtered_tables, query_tokens)
     """
-    tokens = _tokenize_query(query)
-    if not tokens:
-        return []
+    query_tokens = extract_query_tokens(query)
+    if not query_tokens:
+        return [], query_tokens
 
-    tokens = _expand_tokens_from_schemas(tokens, schemas)
+    tokens = _expand_tokens_from_schemas(set(query_tokens), schemas)
 
     candidates: List[Tuple[int, str, Dict[str, Any], bool]] = []
 
@@ -246,7 +318,7 @@ def filter_tables_by_query(
             candidates.append((total_score, database, table, table_matched))
 
     if not candidates:
-        return []
+        return [], query_tokens
 
     candidates.sort(key=lambda x: x[0], reverse=True)
 
@@ -265,7 +337,27 @@ def filter_tables_by_query(
             }
         )
 
-    return result
+    return result, query_tokens
+
+
+def filter_tables_by_query(
+    schemas: List[Dict[str, Any]], query: str
+) -> List[Dict[str, Any]]:
+    """
+    스키마(DB) 단위가 아닌 **테이블·컬럼 단위**로 필터링합니다.
+
+    테이블 포함 기준:
+    - 테이블 name·description·aliases가 질의와 정확히 일치하거나
+      질의 토큰이 해당 명칭으로 시작하는 경우 (예: 부서별 → 부서)
+    - 컬럼 name·aliases가 질의와 정확히 일치하는 경우
+
+    포함된 테이블은 **모든 컬럼**을 프롬프트에 전달합니다.
+
+    Returns:
+        [{"database": "hr", "name": "employees", "columns": [slim, ...]}, ...]
+    """
+    tables, _ = filter_tables_and_tokens(schemas, query)
+    return tables
 
 
 def group_tables_by_database(
