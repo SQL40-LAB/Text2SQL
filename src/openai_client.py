@@ -1,6 +1,7 @@
 """OpenAI ChatGPT API 호출."""
 
 import re
+import sys
 
 from openai import APIStatusError, AuthenticationError, OpenAI, RateLimitError
 
@@ -82,6 +83,28 @@ def generate_sql(user_query: str, filtered_tables: list) -> tuple[str, str]:
     return sql, user_prompt
 
 
+def _log_token_usage(response) -> None:
+    """API 응답의 usage를 터미널(stdout)에만 출력합니다."""
+    usage = getattr(response, "usage", None)
+    if usage is None:
+        print("[OpenAI] token usage: (응답에 usage 정보 없음)", flush=True)
+        return
+
+    prompt_tokens = getattr(usage, "prompt_tokens", 0) or 0
+    completion_tokens = getattr(usage, "completion_tokens", 0) or 0
+    total_tokens = getattr(usage, "total_tokens", 0) or 0
+
+    print(
+        "[OpenAI] token usage | "
+        f"model={OPENAI_MODEL} | "
+        f"prompt={prompt_tokens} | "
+        f"completion={completion_tokens} | "
+        f"total={total_tokens}",
+        flush=True,
+        file=sys.stdout,
+    )
+
+
 def generate_sql_from_prompt(user_prompt: str) -> str:
     """생성된 사용자 프롬프트로 ChatGPT API를 호출해 SQL을 반환합니다."""
     if not OPENAI_API_KEY:
@@ -103,5 +126,6 @@ def generate_sql_from_prompt(user_prompt: str) -> str:
     except Exception as e:
         raise OpenAIAPIError(format_openai_exception(e)) from e
 
+    _log_token_usage(response)
     raw = response.choices[0].message.content or ""
     return extract_sql_from_response(raw)
