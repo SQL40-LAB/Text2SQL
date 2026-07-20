@@ -186,27 +186,6 @@ def _column_matches(col: Dict[str, Any], tokens: Set[str]) -> bool:
     return _matches_entity(tokens, terms, allow_prefix=False)
 
 
-def _expand_tokens_from_schemas(tokens: Set[str], schemas: List[Dict[str, Any]]) -> Set[str]:
-    """매칭된 테이블·컬럼의 영문명 등을 토큰에 보강합니다."""
-    expanded = set(tokens)
-
-    def _add_entity_tokens(name: str, aliases: Any) -> None:
-        expanded.add(name.lower())
-        for alias in _normalize_aliases(aliases):
-            expanded.add(alias.lower())
-
-    for schema in schemas:
-        for table in schema.get("tables", []):
-            if _table_matches(table, tokens):
-                _add_entity_tokens(table["name"], table.get("aliases"))
-
-            for col in table.get("columns", []):
-                if _column_matches(col, tokens):
-                    _add_entity_tokens(col["name"], col.get("aliases"))
-
-    return expanded
-
-
 def _slim_column(col: Dict[str, Any]) -> Dict[str, Any]:
     """프롬프트용 최소 컬럼 정보 (긴 description 제외)."""
     slim: Dict[str, Any] = {
@@ -291,6 +270,9 @@ def filter_tables_and_tokens(
     """
     스키마 필터링 결과와 질의에서 추출한 토큰 목록을 함께 반환합니다.
 
+    테이블 선정은 질의에서 추출한 원본 토큰만 사용합니다.
+    (매칭된 컬럼의 영문명 확장으로 다른 테이블이 끌려오지 않도록 함)
+
     Returns:
         (filtered_tables, query_tokens)
     """
@@ -298,7 +280,7 @@ def filter_tables_and_tokens(
     if not query_tokens:
         return [], query_tokens
 
-    tokens = _expand_tokens_from_schemas(set(query_tokens), schemas)
+    tokens = set(query_tokens)
 
     candidates: List[Tuple[int, str, Dict[str, Any], bool]] = []
 
