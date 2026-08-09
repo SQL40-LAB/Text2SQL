@@ -59,14 +59,20 @@ def to_mariadb_sql(sql: str, source_dialect: str = "oracle") -> Tuple[str, Optio
 def run_query_from_generated_sql(
     annotated_sql: str,
     *,
+    db_user: str,
+    db_password: str = "",
     source_dialect: str = "oracle",
     fetch_limit: int = QUERY_PAGE_SIZE * 10,
 ) -> QueryResult:
     """
     [기능: 생성 SQL 기반 DB 조회]
     1) 주석 제거 → 2) MariaDB 방언 변환 → 3) SELECT 실행
+    db_user/db_password: 화면에서 입력한 DB 계정 정보
     fetch_limit: 페이징 전에 DB에서 가져올 최대 행 수(기본 1000)
     """
+    if not db_user or not db_user.strip():
+        return QueryResult(error="DB 사용자 ID를 입력해 주세요.")
+
     mariadb_sql, convert_warning = to_mariadb_sql(
         annotated_sql, source_dialect=source_dialect
     )
@@ -74,7 +80,12 @@ def run_query_from_generated_sql(
         result = QueryResult(error=convert_warning or "실행할 SQL이 비어 있습니다.")
         return result
 
-    result = execute_select(mariadb_sql, limit=fetch_limit)
+    result = execute_select(
+        mariadb_sql,
+        user=db_user,
+        password=db_password,
+        limit=fetch_limit,
+    )
     # 방언 변환에 실패했지만 원문으로 실행을 시도한 경우, 조회 오류에 경고를 함께 표시
     if convert_warning and result.error:
         result.error = f"{convert_warning}\n{result.error}"

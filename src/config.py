@@ -20,10 +20,10 @@ OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 SQL_DIALECT = os.getenv("SQL_DIALECT", "oracle")
 
 # --- MariaDB 연결 (로컬 조회용) ---
+# Host/Port/Database만 .env에서 사용합니다.
+# 사용자 ID·비밀번호는 화면 입력값을 사용합니다.
 MARIADB_HOST = os.getenv("MARIADB_HOST", "127.0.0.1")
 MARIADB_PORT = int(os.getenv("MARIADB_PORT", "3306"))
-MARIADB_USER = os.getenv("MARIADB_USER", "root")
-MARIADB_PASSWORD = os.getenv("MARIADB_PASSWORD", "")
 MARIADB_DATABASE = os.getenv("MARIADB_DATABASE", "hr")
 
 # 조회 결과 그리드: 한 페이지당 최대 행 수

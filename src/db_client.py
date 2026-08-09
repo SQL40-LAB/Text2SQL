@@ -13,9 +13,7 @@ from pymysql.cursors import DictCursor
 from src.config import (
     MARIADB_DATABASE,
     MARIADB_HOST,
-    MARIADB_PASSWORD,
     MARIADB_PORT,
-    MARIADB_USER,
     QUERY_PAGE_SIZE,
 )
 
@@ -30,21 +28,24 @@ class QueryResult:
     executed_sql: str = ""
 
 
-def get_connection():
+def get_connection(*, user: str, password: str = ""):
     """
     [기능: MariaDB 연결]
-    로컬 MariaDB에 연결합니다. .env의 MARIADB_* 설정을 사용합니다.
+    Host/Port/Database는 .env 설정을 쓰고,
+    사용자 ID·비밀번호는 화면에서 입력받은 값을 사용합니다.
     """
-    if not MARIADB_HOST or not MARIADB_USER:
+    if not MARIADB_HOST:
         raise ValueError(
-            "MariaDB 연결 정보가 없습니다. .env에 MARIADB_HOST, MARIADB_USER 등을 설정하세요."
+            "MariaDB 호스트 정보가 없습니다. .env에 MARIADB_HOST를 설정하세요."
         )
+    if not user or not user.strip():
+        raise ValueError("DB 사용자 ID를 입력해 주세요.")
 
     return pymysql.connect(
         host=MARIADB_HOST,
         port=MARIADB_PORT,
-        user=MARIADB_USER,
-        password=MARIADB_PASSWORD,
+        user=user.strip(),
+        password=password or "",
         database=MARIADB_DATABASE or None,
         charset="utf8mb4",
         cursorclass=DictCursor,
@@ -52,7 +53,46 @@ def get_connection():
     )
 
 
-def execute_select(sql: str, *, limit: int = QUERY_PAGE_SIZE) -> QueryResult:
+def _format_db_error(exc: Exception) -> str:
+    """
+    [기능: DB 오류 메시지 변환]
+    인증 실패 등 사용자에게 불필요한 기술 메시지를
+    이해하기 쉬운 안내로 바꿉니다.
+    """
+    message = str(exc)
+    lower = message.lower()
+    errno = getattr(exc, "args", [None])[0] if getattr(exc, "args", None) else None
+
+    auth_keywords = (
+        "access denied",
+        "authentication",
+        "auth_gssapi",
+        "using password",
+        "password",
+        "login",
+        "자격",
+    )
+    auth_errnos = {1045, 1698, 2059, 28000}
+
+    if errno in auth_errnos or any(k in lower for k in auth_keywords):
+        return "ID 또는 비밀번호가 다릅니다."
+
+    if errno in {2003, 2002} or "can't connect" in lower or "connection refused" in lower:
+        return "DB 서버에 연결할 수 없습니다. 호스트·포트·서버 상태를 확인해 주세요."
+
+    if errno == 1049 or "unknown database" in lower:
+        return "데이터베이스 이름이 올바르지 않습니다. .env의 MARIADB_DATABASE를 확인해 주세요."
+
+    return f"MariaDB 조회 오류: {exc}"
+
+
+def execute_select(
+    sql: str,
+    *,
+    user: str,
+    password: str = "",
+    limit: int = QUERY_PAGE_SIZE,
+) -> QueryResult:
     """
     [기능: SELECT 실행]
     준비된 SQL을 MariaDB에서 실행하고 DataFrame으로 반환합니다.
@@ -73,7 +113,7 @@ def execute_select(sql: str, *, limit: int = QUERY_PAGE_SIZE) -> QueryResult:
     limited_sql = _ensure_limit(sql, limit)
 
     try:
-        with get_connection() as conn:
+        with get_connection(user=user, password=password) as conn:
             with conn.cursor() as cursor:
                 cursor.execute(limited_sql)
                 rows: List[dict[str, Any]] = cursor.fetchall()
@@ -82,9 +122,9 @@ def execute_select(sql: str, *, limit: int = QUERY_PAGE_SIZE) -> QueryResult:
         result.row_count = len(df)
         result.executed_sql = limited_sql
     except pymysql.Error as e:
-        result.error = f"MariaDB 조회 오류: {e}"
+        result.error = _format_db_error(e)
     except Exception as e:
-        result.error = f"조회 중 오류: {e}"
+        result.error = _format_db_error(e)
 
     return result
 

@@ -38,6 +38,23 @@ user_query = st.text_area(
     height=140,
     placeholder="예: 부서별 사원 수와 평균 월급여를 보여줘",
 )
+
+# [기능: DB 계정 입력] 조회 시 .env의 USER/PASSWORD 대신 화면 입력값을 사용
+cred_col1, cred_col2 = st.columns(2)
+with cred_col1:
+    db_user = st.text_input(
+        "DB 사용자 ID",
+        placeholder="예: root",
+        key="db_user_input",
+    )
+with cred_col2:
+    db_password = st.text_input(
+        "DB 비밀번호",
+        type="password",
+        placeholder="비밀번호 입력",
+        key="db_password_input",
+    )
+
 generate = st.button("SQL 생성", type="primary", use_container_width=False)
 progress_placeholder = st.empty()
 
@@ -168,14 +185,24 @@ if generate:
     st.session_state["last_result"] = result
     st.session_state["query_result_page"] = 1
 
-    # [기능: MariaDB 조회] SQL이 있으면 주석 제거·방언 변환 후 실행
+    # [기능: MariaDB 조회] SQL이 있으면 화면에서 입력한 ID/PW로 접속해 실행
     if result.sql and not result.no_matching_tables:
-        query_result = run_query_from_generated_sql(
-            result.sql, source_dialect=SQL_DIALECT
-        )
-        st.session_state["query_result_df"] = query_result.dataframe
-        st.session_state["query_result_error"] = query_result.error
-        st.session_state["query_executed_sql"] = query_result.executed_sql
+        if not db_user.strip():
+            st.session_state["query_result_df"] = None
+            st.session_state["query_result_error"] = (
+                "DB 조회를 위해 사용자 ID를 입력해 주세요."
+            )
+            st.session_state["query_executed_sql"] = ""
+        else:
+            query_result = run_query_from_generated_sql(
+                result.sql,
+                db_user=db_user,
+                db_password=db_password,
+                source_dialect=SQL_DIALECT,
+            )
+            st.session_state["query_result_df"] = query_result.dataframe
+            st.session_state["query_result_error"] = query_result.error
+            st.session_state["query_executed_sql"] = query_result.executed_sql
     else:
         st.session_state["query_result_df"] = None
         st.session_state["query_result_error"] = None
@@ -224,4 +251,9 @@ elif not user_query:
         if st.button(ex, key=ex):
             st.session_state["example"] = ex
     if "example" in st.session_state:
-        st.text_area("", value=st.session_state["example"], disabled=True)
+        st.text_area(
+            "선택된 예시 질의",
+            value=st.session_state["example"],
+            disabled=True,
+            label_visibility="collapsed",
+        )
