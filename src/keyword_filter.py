@@ -187,11 +187,13 @@ def _column_matches(col: Dict[str, Any], tokens: Set[str]) -> bool:
 
 
 def _slim_column(col: Dict[str, Any]) -> Dict[str, Any]:
-    """프롬프트용 최소 컬럼 정보 (긴 description 제외)."""
+    """프롬프트용 컬럼 정보 (name/type/description/aliases 포함)."""
     slim: Dict[str, Any] = {
         "name": col["name"],
         "type": col.get("type", ""),
     }
+    if col.get("description"):
+        slim["description"] = col["description"]
     if col.get("primary_key"):
         slim["primary_key"] = True
     if col.get("foreign_key"):

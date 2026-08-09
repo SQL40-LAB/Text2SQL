@@ -90,9 +90,14 @@ def _upper_ident(value: str) -> str:
 
 def filtered_tables_to_prompt(tables: List[Dict[str, Any]]) -> str:
     """
-    필터된 테이블·컬럼만 압축 형식으로 변환 (ChatGPT 토큰 절약).
+    필터된 테이블·컬럼을 ChatGPT 프롬프트용 텍스트로 변환합니다.
 
-    예: HR.EMPLOYEES(EMP_NO NUMBER(3), EMP_NAME VARCHAR2(10))
+    테이블/컬럼의 name, type과 함께 description·aliases를 포함합니다.
+
+    예:
+      HR.EMPLOYEES - 사원 [사원, 직원, employee, employees]
+        - EMP_NO NUMBER(3) - 사원번호 [사번, 사원번호]
+        - EMP_NAME VARCHAR2(10) - 사원명 [사원명, 이름]
     """
     lines: List[str] = []
     for table in tables:
@@ -100,12 +105,41 @@ def filtered_tables_to_prompt(tables: List[Dict[str, Any]]) -> str:
         tname = _upper_ident(table["name"])
         table_label = f"{db}.{tname}"
 
-        col_parts: List[str] = []
+        table_desc = (table.get("description") or "").strip()
+        if table_desc:
+            table_label += f" - {table_desc}"
+
+        table_aliases = _format_aliases(table.get("aliases"))
+        if table_aliases:
+            table_label += f" [{table_aliases}]"
+
+        lines.append(table_label)
+
         for col in table.get("columns", []):
             col_name = _upper_ident(col["name"])
-            col_parts.append(f"{col_name} {col.get('type', '')}".strip())
-        lines.append(f"{table_label}({', '.join(col_parts)})")
-    return "\n".join(lines)
+            type_part = (col.get("type", "") or "").strip()
+            col_line = f"  - {col_name}"
+            if type_part:
+                col_line += f" {type_part}"
+
+            col_desc = _clean_column_description(col.get("description", "") or "")
+            if col_desc:
+                col_line += f" - {col_desc}"
+
+            col_aliases = _format_aliases(col.get("aliases"))
+            if col_aliases:
+                col_line += f" [{col_aliases}]"
+
+            if col.get("primary_key"):
+                col_line += " PK"
+            if col.get("foreign_key"):
+                col_line += f" FK->{_upper_ident(col['foreign_key'])}"
+
+            lines.append(col_line)
+
+        lines.append("")  # 테이블 간 구분
+
+    return "\n".join(lines).rstrip()
 
 
 def schema_to_text(schema: Dict[str, Any]) -> str:

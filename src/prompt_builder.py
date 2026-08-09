@@ -33,5 +33,6 @@ def build_user_prompt(
 {user_query}
 
 위 스키마의 스키마명·테이블명·컬럼명은 모두 대문자로 표기되어 있습니다.
+description·aliases는 의미 파악용이며, SQL에는 실제 테이블명·컬럼명만 사용하세요.
 요청에 맞는 **Oracle SQL**을 작성할 때도 동일하게 대문자 식별자를 사용하세요.
 """
