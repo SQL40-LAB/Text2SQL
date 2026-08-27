@@ -16,8 +16,8 @@ SCHEMA_DIR = PROJECT_ROOT / "data" / "schemas"
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
-# 생성·검증에 사용할 SQL 방언 (sqlglot dialect 이름)
-SQL_DIALECT = os.getenv("SQL_DIALECT", "oracle")
+# 생성·검증에 사용할 SQL 방언 (sqlglot dialect 이름, MariaDB는 mysql)
+SQL_DIALECT = os.getenv("SQL_DIALECT", "mysql")
 
 # --- MariaDB 연결 (로컬 조회용) ---
 # Host/Port/Database만 .env에서 사용합니다.

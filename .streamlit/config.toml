@@ -1,6 +1,6 @@
 [client]
-# Deploy·Development·Run on save 등 개발자 옵션 숨김
-toolbarMode = "viewer"
+# 상단 툴바/메뉴 최소화 (점 3개 메뉴 비표시에 도움)
+toolbarMode = "minimal"
 
 [server]
 # 저장 시 자동 재실행 비활성화

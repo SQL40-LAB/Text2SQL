@@ -1,0 +1,25 @@
+database: product
+description: 보험 상품 기본 정보 및 판매 기간 관리
+aliases: [상품, 보험상품, product]
+tables:
+  - name: product
+    description: 상품
+    aliases: [상품, 상품테이블, 보험상품, PRODUCT]
+    columns:
+      - name: prod_cd
+        type: VARCHAR(5)
+        description: 상품코드
+        primary_key: true
+        aliases: [상품코드]
+      - name: prod_nm
+        type: VARCHAR(200)
+        description: 상품명
+        aliases: [상품명, 상품이름]
+      - name: sale_start_dt
+        type: DATE
+        description: 판매개시일자
+        aliases: [판매개시일자, 판매시작일]
+      - name: sale_end_dt
+        type: DATE
+        description: 판매종료일자
+        aliases: [판매종료일자, 판매종료일]

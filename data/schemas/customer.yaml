@@ -1,0 +1,25 @@
+database: customer
+description: 보험 계약자·피보험자 등 고객 기본 정보 관리
+aliases: [고객, 계약자, 피보험자, customer]
+tables:
+  - name: customer
+    description: 고객
+    aliases: [고객, 고객테이블, CUSTOMER]
+    columns:
+      - name: cust_id
+        type: VARCHAR(20)
+        description: 고객ID
+        primary_key: true
+        aliases: [고객ID, 고객코드]
+      - name: cust_nm
+        type: VARCHAR(100)
+        description: 고객명
+        aliases: [고객명, 이름]
+      - name: enc_res_no
+        type: VARCHAR(30)
+        description: 암호화주민번호
+        aliases: [암호화주민번호, 주민번호]
+      - name: birth_dt
+        type: VARCHAR(8)
+        description: 생년월일
+        aliases: [생년월일, 생일]

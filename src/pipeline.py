@@ -68,14 +68,15 @@ def run_text2sql(
     *,
     use_mock: bool = False,
     on_progress: Optional[ProgressCallback] = None,
+    filter_query: Optional[str] = None,
 ) -> Text2SQLResult:
     """
     흐름도 1~8단계를 순서대로 실행합니다.
 
     1. 사용자 질의
     2~3. 스키마 로드 (GitHub 대신 로컬 YAML)
-    4. 키워드 필터링
-    5~6. 프롬프트 생성 및 ChatGPT 호출
+    4. 키워드 필터링 (filter_query가 있으면 해당 문자열로 필터)
+    5~6. 프롬프트 생성 및 ChatGPT 호출 (user_query 기준)
     7. SQL 파서 검증
     8. 결과 반환
     """
@@ -85,6 +86,9 @@ def run_text2sql(
         result.error = "질의 내용을 입력해 주세요."
         return result
 
+    # 채팅 이력의 사용자 질의들을 합친 문자열로 테이블 필터링 가능
+    keyword_query = (filter_query or user_query).strip() or user_query
+
     try:
         progress = _make_throttled_progress(on_progress)
         _notify_progress(progress, 0)
@@ -92,7 +96,7 @@ def run_text2sql(
         _notify_progress(progress, 1)
 
         filtered_tables, result.filter_tokens = filter_tables_and_tokens(
-            all_schemas, user_query
+            all_schemas, keyword_query
         )
         result.filtered_schemas = group_tables_by_database(filtered_tables)
         result.filtered_schema_text = filtered_tables_to_prompt(filtered_tables)
@@ -154,5 +158,5 @@ def _mock_sql(user_query: str, tables: list) -> str:
     tname = t["name"].upper()
     return (
         f"-- 모의 생성 (질의: {user_query[:50]})\n"
-        f"SELECT {col_sql}\nFROM {db}.{tname}\nFETCH FIRST 10 ROWS ONLY;"
+        f"SELECT {col_sql}\nFROM {db}.{tname}\nLIMIT 10;"
     )

@@ -83,6 +83,15 @@ def _format_db_error(exc: Exception) -> str:
     if errno == 1049 or "unknown database" in lower:
         return "데이터베이스 이름이 올바르지 않습니다. .env의 MARIADB_DATABASE를 확인해 주세요."
 
+    # 1064: syntax error, 1149: syntax for prepared, 42000: syntax SQLSTATE
+    if (
+        errno in {1064, 1149}
+        or "syntax" in lower
+        or "you have an error in your sql syntax" in lower
+    ):
+        detail = message.strip() or str(exc)
+        return f"SQL 문법이 올바르지 않습니다. 쿼리를 확인해 주세요.\n{detail}"
+
     return f"MariaDB 조회 오류: {exc}"
 
 

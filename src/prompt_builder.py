@@ -5,15 +5,15 @@ from typing import Any, Dict, List
 from src.schema_loader import filtered_tables_to_prompt
 
 
-SYSTEM_PROMPT = """당신은 Oracle SQL 전문가입니다.
+SYSTEM_PROMPT = """당신은 MariaDB SQL 전문가입니다.
 사용자의 자연어 요청과 제공된 데이터베이스 스키마만을 근거로 SQL을 작성합니다.
 
 규칙:
 1. 제공된 스키마에 존재하는 테이블·컬럼만 사용하세요.
-2. 반드시 Oracle SQL 문법으로 작성하세요 (PostgreSQL/MySQL 전용 문법 사용 금지).
-3. Oracle 관례를 따르세요. 예: 문자열은 작은따옴표, 날짜는 TO_DATE/TO_TIMESTAMP, 상위 N건은 FETCH FIRST n ROWS ONLY 또는 ROWNUM, 조인은 ANSI JOIN 권장.
+2. 반드시 MariaDB(MySQL 호환) SQL 문법으로 작성하세요 (Oracle/PostgreSQL 전용 문법 사용 금지).
+3. MariaDB 관례를 따르세요. 예: 문자열은 작은따옴표, 날짜는 DATE/DATETIME 및 STR_TO_DATE, 상위 N건은 LIMIT n, 조인은 ANSI JOIN 권장. ROWNUM·FETCH FIRST·TO_DATE(Oracle)·dual 등은 사용하지 마세요.
 4. 응답은 반드시 ```sql ... ``` 코드 블록 하나만 포함하세요. 설명은 최소화하세요.
-5. SELECT, INSERT, UPDATE, DELETE 등 사용자 요청에 맞는 문을 생성하세요.
+5. SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, DROP, GRANT 등 사용자 요청에 맞는 문을 생성하세요.
 6. 조인이 필요하면 FK 관계를 활용하세요.
 7. SQL에 사용하는 스키마명·테이블명·컬럼명은 반드시 대문자로 작성하세요. (예: HR.EMPLOYEES, EMP_NO)
 """
@@ -34,5 +34,5 @@ def build_user_prompt(
 
 위 스키마의 스키마명·테이블명·컬럼명은 모두 대문자로 표기되어 있습니다.
 description·aliases는 의미 파악용이며, SQL에는 실제 테이블명·컬럼명만 사용하세요.
-요청에 맞는 **Oracle SQL**을 작성할 때도 동일하게 대문자 식별자를 사용하세요.
+요청에 맞는 **MariaDB SQL**을 작성할 때도 동일하게 대문자 식별자를 사용하세요.
 """

@@ -1,0 +1,83 @@
+database: contract
+description: 보험계약 기본·상태·모집·수금 정보 관리
+aliases: [계약, 보험계약, contract]
+tables:
+  - name: contract
+    description: 계약
+    aliases: [계약, 계약테이블, 보험계약, CONTRACT]
+    columns:
+      - name: cont_no
+        type: VARCHAR(16)
+        description: 계약번호
+        primary_key: true
+        aliases: [계약번호]
+      - name: cont_dt
+        type: DATE
+        description: 계약일자
+        aliases: [계약일자, 계약일]
+      - name: ins_item_cd
+        type: VARCHAR(1)
+        description: 보험종목코드
+        aliases: [보험종목코드, 종목코드]
+      - name: prod_cd
+        type: VARCHAR(5)
+        description: 상품코드 (product.prod_cd)
+        foreign_key: product.prod_cd
+        aliases: [상품코드]
+      - name: ins_start_dt
+        type: DATE
+        description: 보험시기
+        aliases: [보험시기, 보험시작일]
+      - name: ins_end_dt
+        type: DATE
+        description: 보험종기
+        aliases: [보험종기, 보험종료일]
+      - name: cont_status
+        type: VARCHAR(2)
+        description: 계약상태
+        aliases: [계약상태, 상태]
+      - name: cont_prem
+        type: NUMBER(11)
+        description: 계약보험료
+        aliases: [계약보험료, 보험료]
+      - name: guar_prem
+        type: NUMBER(11)
+        description: 보장보험료
+        aliases: [보장보험료]
+      - name: save_prem
+        type: NUMBER(11)
+        description: 적립보험료
+        aliases: [적립보험료]
+      - name: recruiter_cd
+        type: VARCHAR(8)
+        description: 모집자코드 (person.emp_cd)
+        foreign_key: person.emp_cd
+        aliases: [모집자코드, 모집자]
+      - name: recruit_org_id
+        type: VARCHAR(5)
+        description: 모집조직ID (org.org_id)
+        foreign_key: org.org_id
+        aliases: [모집조직ID, 모집조직]
+      - name: collector_cd
+        type: VARCHAR(8)
+        description: 수금자코드 (person.emp_cd)
+        foreign_key: person.emp_cd
+        aliases: [수금자코드, 수금자]
+      - name: contractor_id
+        type: VARCHAR(20)
+        description: 계약자ID (customer.cust_id)
+        foreign_key: customer.cust_id
+        aliases: [계약자ID, 계약자]
+      - name: insured_id
+        type: VARCHAR(20)
+        description: 피보험자ID (customer.cust_id)
+        foreign_key: customer.cust_id
+        aliases: [피보험자ID, 피보험자]
+      - name: pmt_type_cd
+        type: VARCHAR(2)
+        description: 수납구분코드
+        aliases: [수납구분코드, 수납구분]
+      - name: status_chg_dt
+        type: DATE
+        description: 계약상태변경일자
+        aliases: [계약상태변경일자, 상태변경일]

@@ -1,0 +1,26 @@
+database: org
+description: 조직 명세 및 조직 계층 구조 관리
+aliases: [조직, 조직테이블, org]
+tables:
+  - name: org
+    description: 조직
+    aliases: [조직, 조직테이블, ORG]
+    columns:
+      - name: org_id
+        type: VARCHAR(5)
+        description: 조직ID
+        primary_key: true
+        aliases: [조직ID, 조직코드]
+      - name: org_nm
+        type: VARCHAR(100)
+        description: 조직명
+        aliases: [조직명, 조직이름]
+      - name: channel_cd
+        type: VARCHAR(2)
+        description: 채널구분코드
+        aliases: [채널구분코드, 채널코드]
+      - name: parent_org_id
+        type: VARCHAR(5)
+        description: 상위조직ID (org.org_id)
+        foreign_key: org.org_id
+        aliases: [상위조직ID, 상위조직]

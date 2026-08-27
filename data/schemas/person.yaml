@@ -1,0 +1,34 @@
+database: person
+description: 취급자코드를 PK로 한 인사 마스터
+aliases: [인사, 취급자, person]
+tables:
+  - name: person
+    description: 인사
+    aliases: [인사, 취급자, 인사테이블, PERSON]
+    columns:
+      - name: emp_cd
+        type: VARCHAR(8)
+        description: 취급자코드
+        primary_key: true
+        aliases: [취급자코드, 사원코드, 설계사코드]
+      - name: emp_nm
+        type: VARCHAR(100)
+        description: 취급자명
+        aliases: [취급자명, 사원명, 이름]
+      - name: org_id
+        type: VARCHAR(5)
+        description: 조직ID (org.org_id)
+        foreign_key: org.org_id
+        aliases: [조직ID, 소속조직]
+      - name: appoint_dt
+        type: DATE
+        description: 위촉일자
+        aliases: [위촉일자, 위촉일]
+      - name: terminate_dt
+        type: DATE
+        description: 해촉일자
+        aliases: [해촉일자, 해촉일]
+      - name: enc_res_no
+        type: VARCHAR(30)
+        description: 암호화주민번호
+        aliases: [암호화주민번호, 주민번호]

@@ -6,10 +6,12 @@ import streamlit.components.v1 as components
 
 HIDE_CHROME_CSS = """
 <style>
-[data-testid="stSidebar"] { display: none; }
-[data-testid="collapsedControl"] { display: none; }
+/* Deploy/Stop · 우측 상단 점3개(메인 메뉴)만 숨김 — 툴바 전체 숨김 금지(사이드바 펼치기 유지) */
 [data-testid="stStatusWidget"] { display: none !important; }
 .stAppDeployButton { display: none !important; }
+#MainMenu { visibility: hidden !important; display: none !important; }
+[data-testid="stMainMenu"] { display: none !important; visibility: hidden !important; }
+div[data-testid="stDecoration"] { display: none !important; }
 .stElementContainer:has(iframe[height="0"]) {
     height: 0 !important;
     margin: 0 !important;
@@ -18,10 +20,6 @@ HIDE_CHROME_CSS = """
 }
 div[data-testid="stHtml"] iframe {
     border: none !important;
-}
-div[data-testid="stHtml"] {
-    margin-top: 0.75rem;
-    margin-bottom: 0.25rem;
 }
 </style>
 """
