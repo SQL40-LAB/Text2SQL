@@ -1,0 +1,245 @@
+database: insurance_db
+description: 화재/손해보험 계약, 고객, 보상 및 조직 통합 스키마
+aliases: [화재, 화재보험, 손보, 손해보험, 보험, insurance]
+tables:
+  - name: contracts
+    description: 보험 계약 마스터
+    aliases: [계약, 신계약, contract, contracts, 보험계약]
+    columns:
+      - name: contract_id
+        type: VARCHAR(30)
+        description: 계약번호 (고유식별자)
+        primary_key: true
+        aliases: [계약번호, 증권번호, 계약id]
+      - name: contract_date
+        type: DATE
+        description: 신계약일자/계약일자
+        aliases: [계약일, 계약일자, 신계약일]
+      - name: sign_date
+        type: DATE
+        description: 청약일자
+        aliases: [청약일, 청약일자]
+      - name: status
+        type: VARCHAR(20)
+        description: 계약상태 (정상, 철회, 해지, 실효 등)
+        aliases: [상태, 계약상태, 철회여부]
+      - name: withdrawal_date
+        type: DATE
+        description: 철회일자
+        aliases: [철회일, 청약철회일, 철회일자]
+      - name: agent_id
+        type: VARCHAR(20)
+        description: 모집 취급자 ID
+        foreign_key: agents.agent_id
+        aliases: [모집자, 취급자, 설계사, agent_id]
+      - name: product_id
+        type: VARCHAR(20)
+        description: 상품 ID
+        foreign_key: products.product_id
+        aliases: [상품, product_id]
+      - name: contractor_id
+        type: VARCHAR(20)
+        description: 계약자 고객 ID
+        foreign_key: customers.customer_id
+        aliases: [계약자, 계약자id]
+      - name: insured_id
+        type: VARCHAR(20)
+        description: 주피보험자 고객 ID
+        foreign_key: customers.customer_id
+        aliases: [피보험자, 피보험자id, 주피]
+      - name: is_human_ins
+        type: VARCHAR(1)
+        description: 인보험 여부 (Y/N)
+        aliases: [인보험, 인보험여부, 인보험계약]
+      - name: monthly_premium
+        type: DECIMAL(12, 2)
+        description: 월납환산보험료 (실적 인정 기준 보험료)
+        aliases: [월납환산보험료, 월납화, 월초, 환산보험료]
+      - name: total_premium
+        type: DECIMAL(12, 2)
+        description: 총보험료/영업보험료
+        aliases: [총보험료, 영업보험료, 합계보험료]
+      - name: guarantee_premium_ratio
+        type: DECIMAL(5, 2)
+        description: 전체 보험료 중 보장보험료가 차지하는 비율(%)
+        aliases: [보장보험료비율, 보장비율]
+      - name: payment_method
+        type: VARCHAR(50)
+        description: 초회/계속분 납입방법 (가상계좌, 자동이체, 신용카드 등)
+        aliases: [납입방법, 결제수단, 수금방법, 가상계좌]
+      - name: payment_period
+        type: INTEGER
+        description: 납입기간(년)
+        aliases: [납기, 납입기간]
+      - name: coverage_period
+        type: INTEGER
+        description: 보험기간(년)
+        aliases: [보기, 보험기간, 만기]
+
+  - name: customers
+    description: 고객(계약자 및 피보험자) 마스터
+    aliases: [고객, 계약자, 피보험자, customer, customers, 인물]
+    columns:
+      - name: customer_id
+        type: VARCHAR(20)
+        description: 고객 고유 ID
+        primary_key: true
+        aliases: [고객번호, 고객id, 주민번호대체키]
+      - name: customer_name
+        type: VARCHAR(100)
+        description: 고객명
+        aliases: [고객명, 이름, 피보험자명, 계약자명]
+      - name: birth_date
+        type: DATE
+        description: 생년월일
+        aliases: [생년월일, 생일]
+      - name: age
+        type: INTEGER
+        description: 보험연령/만연령
+        aliases: [연령, 나이, 보험나이]
+      - name: gender
+        type: VARCHAR(1)
+        description: 성별 (M, F)
+        aliases: [성별, 남녀]
+      - name: job_class
+        type: INTEGER
+        description: 직업급수 (1~3급 등, 화재/상해보험 위험도)
+        aliases: [직업급수, 상해급수, 위험급수]
+      - name: phone
+        type: VARCHAR(20)
+        description: 연락처
+        aliases: [연락처, 핸드폰, 전화번호]
+      - name: address
+        type: VARCHAR(255)
+        description: 자택/직장 주소
+        aliases: [주소, 거주지]
+
+  - name: products
+    description: 상품 마스터
+    aliases: [상품, 보험상품, product, products, 담보]
+    columns:
+      - name: product_id
+        type: VARCHAR(20)
+        description: 상품 ID
+        primary_key: true
+        aliases: [상품번호, 상품코드]
+      - name: product_name
+        type: VARCHAR(200)
+        description: 상품명
+        aliases: [상품명, 보험명]
+      - name: ins_type
+        type: VARCHAR(50)
+        description: 보험종목 (장기, 일반, 자동차, 화재재물 등)
+        aliases: [보험종목, 상품군, 종목]
+      - name: risk_level
+        type: VARCHAR(20)
+        description: 상품 위험등급 (고위험, 중위험, 저위험)
+        aliases: [위험등급, 리스크]
+
+  - name: agents
+    description: 모집 취급자 / 설계사 마스터
+    aliases: [취급자, 설계사, 모집인, agent, agents, 영업가족]
+    columns:
+      - name: agent_id
+        type: VARCHAR(20)
+        description: 취급자 ID / 사번
+        primary_key: true
+        aliases: [사번, 취급자번호, 설계사번호]
+      - name: agent_name
+        type: VARCHAR(100)
+        description: 취급자명
+        aliases: [취급자명, 설계사명, 성명]
+      - name: org_id
+        type: VARCHAR(20)
+        description: 소속 조직/지점 ID
+        foreign_key: organizations.org_id
+        aliases: [소속, 지점번호, 영업소번호]
+      - name: customer_id
+        type: VARCHAR(20)
+        description: 설계사 본인의 고객 ID (본인계약 판별용)
+        foreign_key: customers.customer_id
+        aliases: [본인고객번호, 본인계약확인용]
+      - name: grade
+        type: VARCHAR(50)
+        description: 직급/직책 (지점장, 팀장, 일반 등)
+        aliases: [직급, 직책, 등급]
+      - name: status
+        type: VARCHAR(20)
+        description: 활동상태 (위촉, 해촉, 휴직)
+        aliases: [활동상태, 위촉상태, 해촉여부]
+
+  - name: organizations
+    description: 영업 조직 및 지점 마스터
+    aliases: [조직, 지점, 영업소, 본부, 지역단, organizations]
+    columns:
+      - name: org_id
+        type: VARCHAR(20)
+        description: 조직 ID
+        primary_key: true
+        aliases: [조직번호, 지점코드]
+      - name: org_name
+        type: VARCHAR(100)
+        description: 조직명
+        aliases: [조직명, 지점명, 본부명]
+      - name: parent_org_id
+        type: VARCHAR(20)
+        description: 상위 조직 ID (지역단/본부 등)
+        aliases: [상위조직, 상위부서]
+      - name: org_level
+        type: VARCHAR(20)
+        description: 조직단계 (본사, 본부, 지역단, 지점, 영업소)
+        aliases: [조직단계, 조직레벨]
+
+  - name: claims
+    description: 사고 접수 및 보상 마스터
+    aliases: [사고, 보상, 청구, 접수, claim, claims, 사고접수]
+    columns:
+      - name: claim_id
+        type: VARCHAR(30)
+        description: 사고접수번호
+        primary_key: true
+        aliases: [사고번호, 접수번호, 청구번호]
+      - name: contract_id
+        type: VARCHAR(30)
+        description: 계약번호
+        foreign_key: contracts.contract_id
+        aliases: [계약번호, 보상계약]
+      - name: incident_date
+        type: DATE
+        description: 사고일자
+        aliases: [사고일, 사고발생일]
+      - name: claim_type
+        type: VARCHAR(50)
+        description: 사고유형 (화재, 상해, 배상책임, 질병 등)
+        aliases: [사고유형, 청구사유, 담보유형]
+      - name: payment_amount
+        type: DECIMAL(15, 2)
+        description: 지급보험금액
+        aliases: [지급보험금, 보상금, 지급액]
+
+  - name: payments
+    description: 수납 및 납입 내역
+    aliases: [수납, 입금, 납입, payment, payments, 수금]
+    columns:
+      - name: payment_id
+        type: VARCHAR(30)
+        description: 수납번호
+        primary_key: true
+        aliases: [수납번호, 입금번호]
+      - name: contract_id
+        type: VARCHAR(30)
+        description: 계약번호
+        foreign_key: contracts.contract_id
+        aliases: [계약번호]
+      - name: pay_date
+        type: DATE
+        description: 납입/수납 일자
+        aliases: [납입일, 입금일, 수납일]
+      - name: amount
+        type: DECIMAL(12, 2)
+        description: 수납/입금 금액
+        aliases: [납입금액, 입금액, 수납금액]
+      - name: seq
+        type: INTEGER
+        description: 납입 회차 (1=초회, 2~=계속분)
+        aliases: [회차, 납입회차]
