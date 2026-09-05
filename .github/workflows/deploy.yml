@@ -1,0 +1,38 @@
+name: Docker CI/CD to Oracle Cloud
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: SSH 접속 후 .env 생성 및 Docker 배포
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.KEY }}
+        port: ${{ secrets.PORT }}
+        script: |
+          cd /home/opc/Text2SQL
+          git pull origin main
+          
+          # GitHub Secrets의 ENV_FILE 내용을 기반으로 서버의 .env 파일 생성/갱신
+          echo "${{ secrets.ENV_FILE }}" > .env
+          
+          docker build -t my-streamlit-app .
+          docker stop streamlit-container || true
+          docker rm streamlit-container || true
+          
+          docker run -d \
+            --name streamlit-container \
+            --env-file .env \
+            -p 8501:8501 \
+            --restart always \
+            my-streamlit-app
+          
+          docker image prune -f
