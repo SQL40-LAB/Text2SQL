@@ -194,6 +194,16 @@ def render_assistant_payload(
         validation_message = result_data.get("validation_message", "")
         error = result_data.get("error")
 
+        st.markdown(
+            '<p class="gemini-section-title">필터링된 스키마</p>',
+            unsafe_allow_html=True,
+        )
+        st.code(
+            result_data.get("filtered_schema_text") or "(없음)",
+            language="text",
+            line_numbers=True,
+        )
+
         edit_flag_key = f"sql_editing_{message_index}"
         edit_text_key = f"sql_edit_text_{message_index}"
         editing = bool(st.session_state.get(edit_flag_key, False))
@@ -257,13 +267,6 @@ def render_assistant_payload(
             executed_sql=payload.get("executed_sql", ""),
             message_index=message_index,
             execution_skipped=bool(payload.get("execution_skipped")),
-        )
-
-        st.markdown("**필터링된 스키마**")
-        st.code(
-            result_data.get("filtered_schema_text") or "(없음)",
-            language="text",
-            line_numbers=True,
         )
 
 
