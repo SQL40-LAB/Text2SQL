@@ -2,11 +2,17 @@
 
 import re
 import sys
+from typing import Dict, List, Optional, Sequence
 
 from openai import APIStatusError, AuthenticationError, OpenAI, RateLimitError
 
 from src.config import OPENAI_API_KEY, OPENAI_MODEL
-from src.prompt_builder import SYSTEM_PROMPT, build_user_prompt
+from src.prompt_builder import (
+    MAX_SQL_HISTORY_TURNS,
+    SYSTEM_PROMPT,
+    ConversationTurn,
+    build_user_prompt,
+)
 
 
 class OpenAIConfigurationError(Exception):
@@ -71,7 +77,11 @@ def extract_sql_from_response(content: str) -> str:
     return content.strip()
 
 
-def generate_sql(user_query: str, filtered_tables: list) -> tuple[str, str]:
+def generate_sql(
+    user_query: str,
+    filtered_tables: list,
+    conversation_history: Optional[Sequence[ConversationTurn]] = None,
+) -> tuple[str, str]:
     """
     ChatGPT API를 호출해 SQL을 생성합니다.
 
@@ -79,7 +89,9 @@ def generate_sql(user_query: str, filtered_tables: list) -> tuple[str, str]:
         (생성된 SQL, 사용된 사용자 프롬프트)
     """
     user_prompt = build_user_prompt(user_query, filtered_tables)
-    sql = generate_sql_from_prompt(user_prompt)
+    sql = generate_sql_from_prompt(
+        user_prompt, conversation_history=conversation_history
+    )
     return sql, user_prompt
 
 
@@ -105,7 +117,33 @@ def _log_token_usage(response) -> None:
     )
 
 
-def generate_sql_from_prompt(user_prompt: str) -> str:
+def _build_api_messages(
+    user_prompt: str,
+    conversation_history: Optional[Sequence[ConversationTurn]] = None,
+) -> List[Dict[str, str]]:
+    """system 규칙 → 과거 질의/SQL → 이번 질의 순으로 messages를 구성합니다."""
+    messages: List[Dict[str, str]] = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+    ]
+    turns = list(conversation_history or [])
+    if MAX_SQL_HISTORY_TURNS > 0:
+        turns = turns[-MAX_SQL_HISTORY_TURNS:]
+    for past_query, past_sql in turns:
+        query = (past_query or "").strip()
+        sql = (past_sql or "").strip()
+        if not query or not sql:
+            continue
+        messages.append({"role": "user", "content": query})
+        messages.append({"role": "assistant", "content": f"```sql\n{sql}\n```"})
+    messages.append({"role": "user", "content": user_prompt})
+    return messages
+
+
+def generate_sql_from_prompt(
+    user_prompt: str,
+    *,
+    conversation_history: Optional[Sequence[ConversationTurn]] = None,
+) -> str:
     """생성된 사용자 프롬프트로 ChatGPT API를 호출해 SQL을 반환합니다."""
     if not OPENAI_API_KEY:
         raise OpenAIConfigurationError(
@@ -113,14 +151,12 @@ def generate_sql_from_prompt(user_prompt: str) -> str:
         )
 
     client = OpenAI(api_key=OPENAI_API_KEY)
+    messages = _build_api_messages(user_prompt, conversation_history)
 
     try:
         response = client.chat.completions.create(
             model=OPENAI_MODEL,
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_prompt},
-            ],
+            messages=messages,
             temperature=0.1,
         )
     except Exception as e:

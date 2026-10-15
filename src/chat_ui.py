@@ -581,6 +581,30 @@ def get_user_query_history() -> list[str]:
     ]
 
 
+def get_sql_conversation_history() -> list[tuple[str, str]]:
+    """
+    같은 채팅의 (사용자 질의, 생성 SQL) 쌍을 시간순으로 반환합니다.
+    방금 입력되어 아직 응답이 없는 최신 질의는 제외합니다.
+    """
+    pairs: list[tuple[str, str]] = []
+    pending_user = ""
+    for message in st.session_state.get("messages") or []:
+        role = message.get("role")
+        if role == "user":
+            pending_user = str(message.get("content") or "").strip()
+            continue
+        if role != "assistant" or not pending_user:
+            continue
+        payload = message.get("payload") or {}
+        sql = ""
+        if payload.get("kind") == "result":
+            sql = str((payload.get("result") or {}).get("sql") or "").strip()
+        if sql:
+            pairs.append((pending_user, sql))
+        pending_user = ""
+    return pairs
+
+
 def build_filter_query(latest_query: str) -> str:
     """
     누적 사용자 질의 + 최신 질의를 합쳐 키워드 필터링용 문자열을 만듭니다.

@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Sequence
 
 from src.keyword_filter import filter_tables_and_tokens, group_tables_by_database
 from src.openai_client import OpenAIAPIError, format_openai_exception, generate_sql_from_prompt
-from src.prompt_builder import build_user_prompt
+from src.prompt_builder import ConversationTurn, build_user_prompt
 from src.schema_loader import (
     build_column_description_map,
     filtered_tables_to_prompt,
@@ -69,6 +69,7 @@ def run_text2sql(
     use_mock: bool = False,
     on_progress: Optional[ProgressCallback] = None,
     filter_query: Optional[str] = None,
+    conversation_history: Optional[Sequence[ConversationTurn]] = None,
 ) -> Text2SQLResult:
     """
     흐름도 1~8단계를 순서대로 실행합니다.
@@ -76,7 +77,7 @@ def run_text2sql(
     1. 사용자 질의
     2~3. 스키마 로드 (GitHub 대신 로컬 YAML)
     4. 키워드 필터링 (filter_query가 있으면 해당 문자열로 필터)
-    5~6. 프롬프트 생성 및 ChatGPT 호출 (user_query 기준)
+    5~6. 프롬프트 생성 및 ChatGPT 호출 (과거 질의·SQL + 이번 user_query)
     7. SQL 파서 검증
     8. 결과 반환
     """
@@ -117,7 +118,9 @@ def run_text2sql(
         if use_mock:
             sql = _mock_sql(user_query, filtered_tables)
         else:
-            sql = generate_sql_from_prompt(prompt)
+            sql = generate_sql_from_prompt(
+                prompt, conversation_history=conversation_history
+            )
         _notify_progress(progress, 4)
 
         ok, msg = validate_sql(sql)

@@ -19,6 +19,7 @@ from src.chat_ui import (
     apply_gemini_chat_styles,
     build_filter_query,
     clear_chat,
+    get_sql_conversation_history,
     init_chat_state,
     persist_active_chat,
     render_db_credentials_sidebar,
@@ -394,6 +395,7 @@ def handle_user_query(user_query: str, db_user: str, db_password: str) -> None:
             user_query,
             on_progress=_update_progress,
             filter_query=filter_query,
+            conversation_history=get_sql_conversation_history(),
         )
         progress_placeholder.empty()
 
