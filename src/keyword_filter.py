@@ -65,6 +65,17 @@ KOREAN_REQUEST_SUFFIXES = (
     "줘",
 )
 
+# 한글+영문 복합어를 한 토큰으로 우선 추출 (예: 조직ID가 → 조직ID가)
+# 이어서 순수 영문 식별자 · 한글 · 숫자
+TOKEN_RE = re.compile(
+    r"(?:[가-힣]+[a-zA-Z][a-zA-Z0-9_]*|[a-zA-Z][a-zA-Z0-9_]*[가-힣]+)"
+    r"[가-힣a-zA-Z0-9_]*"
+    r"|[a-zA-Z_][a-zA-Z0-9_]*"
+    r"|[가-힣]+"
+    r"|\d+"
+)
+PART_RE = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*|[가-힣]+|\d+")
+
 
 def _normalize_aliases(aliases: Any) -> List[str]:
     if not aliases:
@@ -85,10 +96,7 @@ def _entity_terms(
 
 
 def _strip_trailing_particles(token: str) -> str:
-    """한글 토큰 끝에 붙은 조사를 반복 제거합니다. (예: 부서를 → 부서)"""
-    if not re.fullmatch(r"[가-힣]+", token):
-        return token
-
+    """토큰 끝에 붙은 한글 조사를 반복 제거합니다. (예: 부서를 → 부서, 조직ID가 → 조직ID)"""
     result = token
     min_stem_len = MIN_TOKEN_LEN
 
@@ -106,10 +114,7 @@ def _strip_trailing_particles(token: str) -> str:
 
 
 def _strip_request_suffixes(token: str) -> str:
-    """한글 토큰 끝의 요청·동사 어미를 제거합니다. (예: 조회해줘 → 조회)"""
-    if not re.fullmatch(r"[가-힣]+", token):
-        return token
-
+    """토큰 끝의 한글 요청·동사 어미를 제거합니다. (예: 조회해줘 → 조회)"""
     result = token
     min_stem_len = MIN_TOKEN_LEN
 
@@ -129,19 +134,29 @@ def _strip_request_suffixes(token: str) -> str:
 def _normalize_token(part: str) -> str:
     """토큰 정규화: 소문자 변환, 조사·요청 어미 제거."""
     token = part.lower()
-    if re.fullmatch(r"[가-힣]+", token):
-        token = _strip_trailing_particles(token)
-        token = _strip_request_suffixes(token)
+    token = _strip_trailing_particles(token)
+    token = _strip_request_suffixes(token)
     return token
 
 
+def _add_token(tokens: Set[str], raw: str) -> None:
+    token = _normalize_token(raw)
+    if len(token) >= MIN_TOKEN_LEN:
+        tokens.add(token)
+
+
 def _tokenize_query(query: str) -> Set[str]:
+    """
+    질의를 토큰화합니다.
+    한글+영문 복합어(조직ID)는 한 토큰으로 두고, 구성 부분(조직, id)도 함께 넣습니다.
+    """
     normalized = query.lower().strip()
     tokens: Set[str] = set()
-    for part in re.findall(r"[a-zA-Z_][a-zA-Z0-9_]*|[가-힣]+|\d+", normalized):
-        token = _normalize_token(part)
-        if len(token) >= MIN_TOKEN_LEN:
-            tokens.add(token)
+    for part in TOKEN_RE.findall(normalized):
+        _add_token(tokens, part)
+        if re.search(r"[가-힣]", part) and re.search(r"[a-zA-Z0-9]", part):
+            for sub in PART_RE.findall(part):
+                _add_token(tokens, sub)
     return _remove_stopwords(tokens)
 
 
@@ -245,7 +260,7 @@ def format_query_with_highlighted_tokens(query: str, tokens: List[str]) -> str:
     parts: List[str] = []
     last = 0
 
-    for match in re.finditer(r"[a-zA-Z_][a-zA-Z0-9_]*|[가-힣]+|\d+", query):
+    for match in TOKEN_RE.finditer(query):
         parts.append(query[last : match.start()])
         segment = match.group()
         normalized = _normalize_token(segment)
